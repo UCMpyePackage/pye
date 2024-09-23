@@ -61,8 +61,7 @@
 #' @importFrom evmix kdz
 #' @importFrom OptimalCutpoints optimal.cutpoints
 #' @importFrom plyr join
-#' @importFrom expm sqrtm
-#' @importFrom numDeriv grad
+#' @importFrom Matrix nearPD
 #' @export
 longpye_KS <- function(df_train, df_test=NULL, id="id", X=names(df_train[,!(names(df_train) %in% c(y,id,t))]),
                        y="y", t="t", betas, lambda,

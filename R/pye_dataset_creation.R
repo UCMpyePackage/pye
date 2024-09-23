@@ -13,7 +13,7 @@
 # 0.2   0.5  0.8
 #
 # function to generate the correlated regressors following different distributions
-#' @importFrom Matrix bdiag
+# @importFrom Matrix bdiag
 #' @importFrom MASS mvrnorm
 create_variables = function(rows, cols, cov, mu=rep(0,cols), seed=1){
   set.seed(seed)
@@ -77,7 +77,7 @@ create_variables = function(rows, cols, cov, mu=rep(0,cols), seed=1){
 }
 
 # function to generate the correlated regressors following different distributions
-#' @importFrom Matrix bdiag
+# @importFrom Matrix bdiag
 #' @importFrom MASS mvrnorm
 create_covariates <- function(rows, cols_cov, cov, mu_cov=rep(0,cols_cov), seed=1){
   set.seed(seed)
