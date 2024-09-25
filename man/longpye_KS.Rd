@@ -78,7 +78,9 @@ The Penalizad Youden Index (PYE) function for longitudinal data
 based on the Kernel Smooth density estimator. It not only evaluate PYE in
 logitudinal case, but it returns all the necessary for the estimation
 process, like measure of fit and derivatives. It works for all the
-considered penalties (L12, L1, EN, SCAD and MCP)
+considered penalties (L12, L1, EN, SCAD and MCP). In this variant we study
+the case in which we estimate the different beta for the times of the
+same feature (like Y = b0 + b1 x1t1 + b2 x1t2 +  b3 x1t3 + ....).
 }
 \examples{
 library(pye)
@@ -95,9 +97,8 @@ penalty <- "L12"
 lambda <- 0.1
 betas <- rep(1, length(X))
 c <- 0
-prox_penalty <- get(paste0("proximal_operator_", penalty))
 
-PYE_result <- pye_KS(df=df[,names(df) \%in\% c(X,y)], X=X, y=y, betas=betas,
+longpye_KS <- pye_KS(df=df[,names(df) \%in\% c(X,y)], X=X, y=y, betas=betas,
   lambda=lambda, c=c, alpha=0.5, a1=3.7, a2=3, penalty=penalty)
 print(PYE_result)
 

@@ -120,15 +120,15 @@ covYI_KS <- function(df, z="z_hat", y="y", C, gammas, tau, kernel="gaussian", al
 
   #Create a new df considering only the columns included in X (the regressors to consider) and y, the target variable
   #Create also the variable ID and add it at the beginning (useful for merges)
-  if (class(C) == "data.frame"){
+  if (inherits(class(C), "data.frame")){
     C <- names(C)
-  } else if (class(C) != "character"){stop("C can only be of class character or data.frame.")}
-  if (class(z) == "data.frame"){
+  } else if (!inherits(class(C), "character")){stop("C can only be of class character or data.frame.")}
+  if (inherits(class(z), "data.frame")){
     z <- names(z)
-  } else if (class(z) != "character"){stop("z can only be of class character or data.frame.")}
-  if (class(y) == "data.frame"){
+  } else if (!inherits(class(z), "character")){stop("z can only be of class character or data.frame.")}
+  if (inherits(class(y), "data.frame")){
     y <- names(y)
-  } else if (class(y) != "character"){stop("y can only be of class character or data.frame.")}
+  } else if (!inherits(class(y), "character")){stop("y can only be of class character or data.frame.")}
 
   #check if ID already exists in the dataset
   if("ID" %in% colnames(df)){stop("ID already exists as column in df! Please delete or rename this column since I need this name to set the internal ID")}
@@ -528,9 +528,9 @@ covYI_KS_estimation <- function(df, z="z_hat", y="y", C, tau, penalty="L1", gamm
 
   #Create a new df considering only the columns included in X (the regressors to consider) and y, the target variable
   #Create also the variable ID and add it at the beginning (useful for merges)
-  if (class(C) != "character"){stop("C can only be of class character or data.frame.")}
-  if (class(z) != "character"){stop("X can only be of class character or data.frame.")}
-  if (class(y) != "character"){stop("y can only be of class character or data.frame.")}
+  if (!inherits(class(C), "character")){stop("C can only be of class character or data.frame.")}
+  if (!inherits(class(z), "character")){stop("X can only be of class character or data.frame.")}
+  if (!inherits(class(y), "character")){stop("y can only be of class character or data.frame.")}
 
   #check if ID already exists in the dataset
   if("ID" %in% colnames(df)){stop("ID already exists as column in df! Please delete or rename this column since I need this name to set the internal ID")}

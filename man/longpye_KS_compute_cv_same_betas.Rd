@@ -8,7 +8,7 @@
 longpye_KS_compute_cv_same_betas(
   n_folds,
   df,
-  X = names(df[, !(names(df) \%in\% c(y, C))]),
+  X = names(df[, !(names(df) \%in\% c(y))]),
   y = "y",
   id = "id",
   t = "t",
@@ -149,7 +149,7 @@ c_zero_fixed <- FALSE
 used_cores <- 1
 used_penalty_pye <- c("L1", "MCP") #c("L12", "L1", "EN", "SCAD", "MCP")
 max_iter <- 10
-n_folds <- 5
+n_folds <- 3
 
 #pye Gaussian (and others) Kernel Smooth
 for (p in used_penalty_pye){

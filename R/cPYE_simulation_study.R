@@ -173,8 +173,8 @@ cPYE_simulation_study_real_data <- function(n=1000, df, X=names(df[,!(names(df) 
 
   #Create a new df considering only the columns included in X (the regressors to consider) and y, the target variable
   #Create also the variable ID and add it at the beginning (useful for merges)
-  if (class(X) != "character"){stop("X can only be of class character or data.frame.")}
-  if (class(y) != "character"){stop("y can only be of class character or data.frame.")}
+  if (!inherits(class(X), "character")){stop("X can only be of class character or data.frame.")}
+  if (!inherits(class(y), "character")){stop("y can only be of class character or data.frame.")}
 
   #check if ID already exists in the dataset
   if("ID" %in% colnames(df)){stop("ID already exists as column in df! Please delete or rename this column since I need this name to set the internal ID")}

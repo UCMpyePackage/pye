@@ -242,7 +242,8 @@ for (p in used_penalty_pye){
                             kernel="gaussian", used_cores=used_cores,
                             c_function_of_covariates=c_function_of_covariates,
 						   c_zero_fixed=c_zero_fixed,
-							   run_aauc=FALSE))
+							   run_aauc=FALSE,
+							   max_iter=10, max_iter_g=10))
   }
 }
 cat("Computation finished! Start saving data.")

@@ -106,7 +106,7 @@ df1 <- cbind(ID, df[,(names(df) \%in\% c(y,X))])
 penalty <- "L12"
 c_zero_fixed <- TRUE
 lambda <- 0.1
-max_iter <- 100
+max_iter <- 10
 kernel <- "gaussian"
 if (penalty == "SCAD") {a=3.7} else {a=3.0}
 prox_penalty <- get(paste0("proximal_operator_", penalty))

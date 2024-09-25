@@ -157,7 +157,7 @@ cPYE_estimation_result <- cPYE_KS_estimation(df=df, X=X, y=y, C=C,
   beta_start_default=param_start_default,
  gamma_start_default=param_start_default,
   lambda=lambda, tau=tau, alpha=alpha, regressors_betas=regressors_betas,
-  regressors_gammas=regressors_gammas)
+  regressors_gammas=regressors_gammas, max_iter=10)
 
 print(cPYE_estimation_result)
 

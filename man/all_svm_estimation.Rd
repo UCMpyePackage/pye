@@ -93,5 +93,4 @@ z_hat <- all_svm_estimation(df=df, X=X, y=y, model_type=model_type, lambda1=lamb
       	regressors_betas=regressors_betas, trace=1)
 
 print(z_hat)
-#' @importFrom e1071 svm
 }

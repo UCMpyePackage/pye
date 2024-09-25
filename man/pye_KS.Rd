@@ -90,7 +90,6 @@ penalty <- "L12"
 lambda <- 0.1
 betas <- rep(1, length(X))
 c <- 0
-prox_penalty <- get(paste0("proximal_operator_", penalty))
 
 PYE_result <- pye_KS(df=df[,names(df) \%in\% c(X,y)], X=X, y=y, betas=betas,
   lambda=lambda, c=c, alpha=0.5, a1=3.7, a2=3, penalty=penalty)

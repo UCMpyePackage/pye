@@ -71,7 +71,7 @@
 #' alpha <- 0.5
 #' lambda <- 0.1
 #' tau <- 0.05
-#' max_iter <- 100
+#' max_iter <- 10
 #' kernel <- "gaussian"
 #' if (penalty == "SCAD") {a=3.7} else {a=3.0}
 #' prox_penalty <- get(paste0("proximal_operator_", penalty))
@@ -495,7 +495,7 @@ mmAPG2 <- function(x0, g0, delta_fx_betas, delta_fx_gammas, proxx_betas, proxx_g
 #' alpha <- 0.5
 #' lambda <- 0.1
 #' tau <- 0.05
-#' max_iter <- 100
+#' max_iter <- 10
 #' kernel <- "gaussian"
 #' if (penalty == "SCAD") {a=3.7} else {a=3.0}
 #' prox_penalty <- get(paste0("proximal_operator_", penalty))

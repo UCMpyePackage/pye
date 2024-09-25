@@ -154,25 +154,21 @@ cols <- 2000
 cols_cov <- 20
 seed=1
 simMicroarrayData_cov02_dim50_covariates <- create_sample_with_covariates(
-		rows_train=50, cols=cols, cols_cov=cols_cov, covar=0.2, seed=seed)
+		rows_train=50, cols=cols, cols_cov=cols_cov, seed=seed)
 df <- simMicroarrayData_cov02_dim50_covariates$train_df_scaled
 X <- simMicroarrayData_cov02_dim50_covariates$X
 y <- simMicroarrayData_cov02_dim50_covariates$y
 C <- simMicroarrayData_cov02_dim50_covariates$C
 regressors_betas<-simMicroarrayData_cov02_dim50_covariates$nregressors
 regressors_gammas<-simMicroarrayData_cov02_dim50_covariates$ncovariates
-penalty <- "SCAD"
-c <- 0
-prox_penalty = get(paste0("proximal_operator_", penalty))
 trend = "monotone" #or "nonmonotone"
 pye_starting_point = "zeros" #c("zeros", "corr")
 alpha = 0.5
 c_zero_fixed <- FALSE
 c_function_of_covariates <- TRUE
 used_cores <- 1
-used_penalty_pye <- c("L1", "MCP") #c("L12", "L1", "EN", "SCAD", "MCP")
 max_iter <- 10
-n_folds <- 5
+n_folds <- 3
 simultaneous <- FALSE #with false, covYI is applied as a second step, once we
 #have already estimated lambda
 

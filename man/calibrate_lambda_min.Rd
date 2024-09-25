@@ -24,6 +24,8 @@ lambda, the number of its elements increases.}
 \item{lambda_start}{Starting value of lambda. If left too small it might take
 longer (default is 0.0001)}
 
+\item{lambda_inf}{floor value for lambda (default is 1e-20)}
+
 \item{max_var}{Maximum number of variable to accept the result of the
 function (default is 100.000)}
 

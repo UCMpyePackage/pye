@@ -165,9 +165,7 @@ y <- simMicroarrayData_cov02_dim50_covariates$y
 C <- simMicroarrayData_cov02_dim50_covariates$C
 regressors_betas<-simMicroarrayData_cov02_dim50_covariates$nregressors
 regressors_gammas<-simMicroarrayData_cov02_dim50_covariates$ncovariates
-penalty <- "SCAD"
 c <- 0
-prox_penalty = get(paste0("proximal_operator_", penalty))
 trend = "monotone" #or "nonmonotone"
 pye_starting_point = "zeros" #c("zeros", "corr")
 alpha = 0.5
@@ -176,7 +174,7 @@ c_function_of_covariates <- TRUE
 used_cores <- 1
 used_penalty_pye <- c("L1", "MCP") #c("L12", "L1", "EN", "SCAD", "MCP")
 max_iter <- 10
-n_folds <- 5
+n_folds <- 3
 simultaneous <- FALSE #with false, covYI is applied as a second step, once we
 #have already estimated lambda
 

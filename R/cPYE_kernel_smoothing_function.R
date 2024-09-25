@@ -121,9 +121,9 @@ cPYE_KS <- function(df, X=names(df[,!(names(df) %in% c(y,C))]), y="y", C, betas,
   
   #Create a new df considering only the columns included in X (the regressors to consider) and y, the target variable
   #Create also the variable ID and add it at the beginning (useful for merges)
-  if (class(C) != "character"){stop("C can only be of class character or data.frame.")}
-  if (class(X) != "character"){stop("X can only be of class character or data.frame.")}
-  if (class(y) != "character"){stop("y can only be of class character or data.frame.")}
+  if (!inherits(class(C), "character")){stop("C can only be of class character or data.frame.")}
+  if (!inherits(class(X), "character")){stop("X can only be of class character or data.frame.")}
+  if (!inherits(class(y), "character")){stop("y can only be of class character or data.frame.")}
 
   #check if ID already exists in the dataset
   if("ID" %in% colnames(df)){stop("ID already exists as column in df! Please delete or rename this column since I need this name to set the internal ID")}
@@ -544,7 +544,7 @@ cPYE_KS <- function(df, X=names(df[,!(names(df) %in% c(y,C))]), y="y", C, betas,
 #'   beta_start_default=param_start_default,
 #'	 gamma_start_default=param_start_default,
 #'   lambda=lambda, tau=tau, alpha=alpha, regressors_betas=regressors_betas,
-#'   regressors_gammas=regressors_gammas)
+#'   regressors_gammas=regressors_gammas, max_iter=10)
 #'
 #' print(cPYE_estimation_result)
 #'
@@ -570,9 +570,9 @@ cPYE_KS_estimation <- function(df, X=names(df[,!(names(df) %in% c(y,C))]), y="y"
 
   #Create a new df considering only the columns included in X (the regressors to consider) and y, the target variable
   #Create also the variable ID and add it at the beginning (useful for merges)
-  if (class(C) != "character"){stop("C can only be of class character or data.frame.")}
-  if (class(X) != "character"){stop("X can only be of class character or data.frame.")}
-  if (class(y) != "character"){stop("y can only be of class character or data.frame.")}
+  if (!inherits(class(C), "character")){stop("C can only be of class character or data.frame.")}
+  if (!inherits(class(X), "character")){stop("X can only be of class character or data.frame.")}
+  if (!inherits(class(y), "character")){stop("y can only be of class character or data.frame.")}
 
   #check if ID already exists in the dataset
   if("ID" %in% colnames(df)){stop("ID already exists as column in df! Please delete or rename this column since I need this name to set the internal ID")}
@@ -1247,15 +1247,15 @@ cPYE_KS_compute_cv <- function (n_folds, df, X=names(df[,!(names(df) %in% c(y,C)
   
   #Create a new df considering only the columns included in X (the regressors to consider) and y, the target variable
   #Create also the variable ID and add it at the beginning (useful for merges)
-  if (class(C) == "data.frame"){
+  if (inherits(class(C), "data.frame")){
     C <- names(C)
-  } else if (class(C) != "character"){stop("C can only be of class character or data.frame.")}
-  if (class(X) == "data.frame"){
+  } else if (!inherits(class(C), "character")){stop("C can only be of class character or data.frame.")}
+  if (inherits(class(X), "data.frame")){
     X <- names(X)
-  } else if (class(X) != "character"){stop("X can only be of class character or data.frame.")}
-  if (class(y) == "data.frame"){
+  } else if (!inherits(class(X), "character")){stop("X can only be of class character or data.frame.")}
+  if (inherits(class(y), "data.frame")){
     y <- names(y)
-  } else if (class(y) != "character"){stop("y can only be of class character or data.frame.")}
+  } else if (!inherits(class(y), "character")){stop("y can only be of class character or data.frame.")}
 
   #check if ID already exists in the dataset
   if("ID" %in% colnames(df)){stop("ID already exists as column in df! Please delete or rename this column since I need this name to set the internal ID")}

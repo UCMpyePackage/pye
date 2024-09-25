@@ -4,7 +4,10 @@
 #' based on the Kernel Smooth density estimator. It not only evaluate PYE in
 #' logitudinal case, but it returns all the necessary for the estimation
 #' process, like measure of fit and derivatives. It works for all the
-#' considered penalties (L12, L1, EN, SCAD and MCP)
+#' considered penalties (L12, L1, EN, SCAD and MCP). In this variant we study
+#' the case in which we estimate the same beta for the all the times of the
+#' same feature (like Y = b0 + b1 x1t1 + b1 x1t2 +  b1 x1t3 + ....), so the
+#' derivative is considered accordingly as the mean.
 #'
 #' @param df the input dataset
 #' @param X regressors to consider in the estimation. It can be of type
@@ -32,6 +35,7 @@
 #' @param print.CDF.plot if TRUE it prints also the plot of the CDFs of cases
 #' and controls for the compination of regressors Z for each dimension. Default
 #' is FALSE
+#' @param c_hat_discriminant
 #'
 #' @return a list containing the value of PYE for the given penalty, the value
 #' of the main accuracy measure and the gradient of PYE computer the the given
@@ -39,28 +43,32 @@
 #'
 #' @examples
 #' library(pye)
-#' cols <- 2000
-#' cols_cov <- 20
-#' seed=1
-#' simMicroarrayData_cov02_dim50_covariates <- create_sample_with_covariates(
-#' 		rows_train=50, cols=cols, cols_cov=cols_cov, covar=0.2, seed=seed)
-#' df <- simMicroarrayData_cov02_dim50_covariates$train_df_scaled
-#' X <- simMicroarrayData_cov02_dim50_covariates$X
-#' y <- simMicroarrayData_cov02_dim50_covariates$y
-#' C <- simMicroarrayData_cov02_dim50_covariates$C
+#' data <- PBC_Mayo_Clinic_data_for_longpye(T=4)
+#' df <- data$df
+#' X <- data$X
+#' y <- data$y
+#' t <- data$t
+#' id <- data$id
 #' penalty <- "L12"
 #' lambda <- 0.1
 #' betas <- rep(1, length(X))
-#' c <- 0
-#' prox_penalty <- get(paste0("proximal_operator_", penalty))
+#' c <- rep(0, length(unique(df[,t])))
 #'
-#' PYE_result <- pye_KS(df=df[,names(df) %in% c(X,y)], X=X, y=y, betas=betas,
-#'   lambda=lambda, c=c, alpha=0.5, a1=3.7, a2=3, penalty=penalty)
+#' PYE_result <- longpye_KS_same_betas(df=df[,names(df) %in% c(X,y,id,t)], X=X, y=y,
+#'   id=id, t=t,betas=betas,lambda=lambda, c=c, alpha=0.5, a1=3.7, a2=3, penalty=penalty)
 #' print(PYE_result)
 #'
 #' @importFrom evmix kdz
 #' @importFrom OptimalCutpoints optimal.cutpoints
 #' @importFrom plyr join
+#' @importFrom Matrix nearPD colSums
+#' @importFrom expm sqrtm
+#' @importFrom matrixcalc is.positive.definite
+#' @importFrom mnormt pmnorm
+#' @importFrom numDeriv grad
+#' @importFrom grDevices boxplot.stats
+#' @importFrom stats setNames ecdf
+#' @importFrom ggplot2 geom_line aes labs theme_minimal
 #' @export
 longpye_KS_same_betas <- function(df_train, df_test=NULL, id="id", X=names(df_train[,!(names(df_train) %in% c(y,id,t))]),
                        y="y", t="t", betas, lambda,
@@ -73,10 +81,10 @@ longpye_KS_same_betas <- function(df_train, df_test=NULL, id="id", X=names(df_tr
   if (nrow(df_train)==0){stop("df_train has no rows")}
 
   #checks
-  if (class(X) != "character"){stop("X can only be of class character or data.frame.")}
-  if (class(y) != "character"){stop("y can only be of class character or data.frame.")}
-  if (class(t) != "character"){stop("t can only be of class character or data.frame.")}
-  if (class(c) == "character"){ c <- df_train[,c]
+  if (!inherits(class(X), "character")){stop("X can only be of class character or data.frame.")}
+  if (!inherits(class(y), "character")){stop("y can only be of class character or data.frame.")}
+  if (!inherits(class(t), "character")){stop("t can only be of class character or data.frame.")}
+  if (!inherits(class(c), "character")){ c <- df_train[,c]
   } else if ((length(c) == 1) & (sum(nrow(c))<2)){ #it is just a single element
     c <- rep(c, length(unique(df_train[,t])))
     names(c) <- order(unique(df_train[,t]))
@@ -237,9 +245,9 @@ longpye_KS_same_betas <- function(df_train, df_test=NULL, id="id", X=names(df_tr
   if(!matrixcalc::is.positive.definite(Gamma0, tol=1e-8)){
     #tranform the matrix in positive-definte:
     #method 1)
-    if (!require(Matrix)) {
-      install.packages("Matrix")
-    }
+    #if (!require(Matrix)) {
+    #  install.packages("Matrix")
+    #}
 
     # Find the nearest positive definite matrix
     Gamma0 <- as.matrix(Matrix::nearPD(Gamma0)$mat)
@@ -282,9 +290,9 @@ longpye_KS_same_betas <- function(df_train, df_test=NULL, id="id", X=names(df_tr
   if(!matrixcalc::is.positive.definite(Gamma1, tol=1e-8)){
     #tranform the matrix in positive-definte:
     #method 1)
-    if (!require(Matrix)) {
-      install.packages("Matrix")
-    }
+    #if (!require(Matrix)) {
+    #  install.packages("Matrix")
+    #}
     # Find the nearest positive definite matrix
     Gamma1 <- as.matrix(Matrix::nearPD(Gamma1)$mat)
 
@@ -502,10 +510,10 @@ longpye_KS_same_betas <- function(df_train, df_test=NULL, id="id", X=names(df_tr
         z_y0_ord <- z_y0[order(z_y0)]
         z_y1_ord <- z_y1[order(z_y1)]
         #correction of the outliers just for plotting
-        z_y0_ord[z_y0_ord %in% boxplot.stats(z_y0_ord)$out] <- min(boxplot.stats(z_y0_ord)$stats[5])
-        z_y1_ord[z_y1_ord %in% boxplot.stats(z_y1_ord)$out] <- min(boxplot.stats(z_y1_ord)$stats[5])
-        ecdf0 <- ecdf(z_y0_ord)
-        ecdf1 <- ecdf(z_y1_ord)
+        z_y0_ord[z_y0_ord %in% grDevices::boxplot.stats(z_y0_ord)$out] <- min(boxplot.stats(z_y0_ord)$stats[5])
+        z_y1_ord[z_y1_ord %in% grDevices::boxplot.stats(z_y1_ord)$out] <- min(boxplot.stats(z_y1_ord)$stats[5])
+        ecdf0 <- stats::ecdf(z_y0_ord)
+        ecdf1 <- stats::ecdf(z_y1_ord)
         plot_data <- data.frame(x = c(z_y0_ord, z_y1_ord),
                                 y = c(ecdf0(z_y0_ord), ecdf1(z_y1_ord)),
                                 group = c(rep("CDF_Y0",length(z_y0_ord)), rep("CDF_Y1", length(z_y1_ord))))
@@ -670,8 +678,8 @@ longpye_KS_same_betas <- function(df_train, df_test=NULL, id="id", X=names(df_tr
 #' @title longpye_KS_estimation_same_betas
 #'
 #' @description function to estimate the optimal value of betas and c maximizing
-#' the PYE function. To find the optimum the mmAPG and mnmAPG algorithms are
-#' used.
+#' the PYE function. In this variant we constrain the selection and combination
+#' of the same biomarkers in the different times.
 #'
 #' @param df the input dataset
 #' @param X regressors to consider in the estimation. It can be of type
@@ -772,9 +780,9 @@ longpye_KS_estimation_same_betas <- function(df, id="id", X=names(df[,!(names(df
 
   #Create a new df considering only the columns included in X (the regressors_betas to consider) and y, the target variable
   #Create also the variable ID and add it at the beginning (useful for merges)
-  if (class(X) != "character"){stop("X can only be of class character or data.frame.")}
-  if (class(y) != "character"){stop("y can only be of class character or data.frame.")}
-  if (class(t) != "character"){stop("t can only be of class character or data.frame.")}
+  if (!inherits(class(X), "character")){stop("X can only be of class character or data.frame.")}
+  if (!inherits(class(y), "character")){stop("y can only be of class character or data.frame.")}
+  if (!inherits(class(t), "character")){stop("t can only be of class character or data.frame.")}
 
   #check if ID already exists in the dataset
   if("ID_rows" %in% colnames(df)){stop("ID_rows already exists as column in df! Please delete or rename this column since I need this name to set the internal ID")}
@@ -1365,7 +1373,7 @@ longpye_KS_same_betas.cv <- function (df, X, y, C, id, t, lambda, trace=1, alpha
 #' used_cores <- 1
 #' used_penalty_pye <- c("L1", "MCP") #c("L12", "L1", "EN", "SCAD", "MCP")
 #' max_iter <- 10
-#' n_folds <- 5
+#' n_folds <- 3
 #'
 #' #pye Gaussian (and others) Kernel Smooth
 #' for (p in used_penalty_pye){
@@ -1415,7 +1423,7 @@ longpye_KS_same_betas.cv <- function (df, X, y, C, id, t, lambda, trace=1, alpha
 #'
 #'
 #' @export
-longpye_KS_compute_cv_same_betas <- function (n_folds, df, X=names(df[,!(names(df) %in% c(y,C))]), y="y",
+longpye_KS_compute_cv_same_betas <- function (n_folds, df, X=names(df[,!(names(df) %in% c(y))]), y="y",
                                 id="id", t="t", lambda, trace=1,
                                 alpha=0.5,
                                 a1=3.7, a2=3, penalty="L1", regressors_betas=NULL,
@@ -1435,9 +1443,9 @@ longpye_KS_compute_cv_same_betas <- function (n_folds, df, X=names(df[,!(names(d
 
   #Create a new df considering only the columns included in X (the regressors_betas to consider) and y, the target variable
   #Create also the variable ID and add it at the beginning (useful for merges)
-  if (class(X) != "character"){stop("X can only be of class character or data.frame.")}
-  if (class(y) != "character"){stop("y can only be of class character or data.frame.")}
-  if (class(t) != "character"){stop("t can only be of class character or data.frame.")}
+  if (!inherits(class(X), "character")){stop("X can only be of class character or data.frame.")}
+  if (!inherits(class(y), "character")){stop("y can only be of class character or data.frame.")}
+  if (!inherits(class(t), "character")){stop("t can only be of class character or data.frame.")}
 
   #check if ID already exists in the dataset
   if("ID_rows" %in% colnames(df)){stop("ID_rows already exists as column in df! Please delete or rename this column since I need this name to set the internal ID")}

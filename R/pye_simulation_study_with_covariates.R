@@ -166,7 +166,8 @@ pye_KS_with_print <- function(df, X, y, betas, lambda, c, sim_n, n, alpha, a1, a
 #'                             kernel="gaussian", used_cores=used_cores,
 #'                             c_function_of_covariates=c_function_of_covariates,
 #'							   c_zero_fixed=c_zero_fixed,
-#' 							   run_aauc=FALSE))
+#' 							   run_aauc=FALSE,
+#' 							   max_iter=10, max_iter_g=10))
 #'   }
 #' }
 #' cat("Computation finished! Start saving data.")
@@ -204,10 +205,10 @@ PYE_simulation_study_real_data <- function(n=1000, df, X=names(df[,!(names(df) %
 
   #Create a new df considering only the columns included in X (the regressors to consider) and y, the target variable
   #Create also the variable ID and add it at the beginning (useful for merges)
-  if (class(X) != "character"){stop("X can only be of class character or data.frame.")}
-  if (class(y) != "character"){stop("y can only be of class character or data.frame.")}
+  if (!inherits(class(X), "character")){stop("X can only be of class character or data.frame.")}
+  if (!inherits(class(y), "character")){stop("y can only be of class character or data.frame.")}
   if(c_function_of_covariates==TRUE){
-    if (class(C) != "character"){stop("C can only be of class character or data.frame.")}
+    if (!inherits(class(C), "character")){stop("C can only be of class character or data.frame.")}
   }
 
   #check if tau exists when c_function_of_covariates=TRUE
@@ -791,7 +792,8 @@ PYE_simulation_study_real_data <- function(n=1000, df, X=names(df[,!(names(df) %
 #'                              kernel="gaussian", used_cores=used_cores,
 #'                              c_function_of_covariates=c_function_of_covariates,
 #'								c_zero_fixed=c_zero_fixed,
-#' 								run_aauc=FALSE))
+#' 								run_aauc=FALSE,
+#' 								max_iter=10, max_iter_g=10))
 #'   }
 #' }
 #' cat("Computation finished! Start saving data.")

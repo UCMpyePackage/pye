@@ -13,7 +13,7 @@
 #' lambda, the number of its elements increases.
 #' @param lambda_start Starting value of lambda. If left big might take longer
 #' (default is 5)
-#' @param lambda_min Minimum value of lambda to try (default is 0.1)
+#' @param lambda_inf floor value for lambda (default is 1e-20)
 #' @param n_min_var Minimum number of variables at which the process stops
 #' @param factor Number to multiply or divide the considered lambda in the
 #' step. The higher, the slower to find the optimal value. Default is 2.
@@ -114,6 +114,7 @@ calibrate_lambda_max <- function(function_to_run, var_to_check="betas_hat",
 #' lambda, the number of its elements increases.
 #' @param lambda_start Starting value of lambda. If left too small it might take
 #' longer (default is 0.0001)
+#' @param lambda_inf floor value for lambda (default is 1e-20)
 #' @param max_var Maximum number of variable to accept the result of the
 #' function (default is 100.000)
 #' @param factor Number to multiply or divide the considered lambda in the

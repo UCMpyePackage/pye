@@ -113,8 +113,8 @@ of the main accuracy measure.
 }
 \description{
 function to estimate the optimal value of betas and c maximizing
-the PYE function. To find the optimum the mmAPG and mnmAPG algorithms are
-used.
+the PYE function. In this variant we constrain the selection and combination
+of the same biomarkers in the different times.
 }
 \examples{
 library(pye)

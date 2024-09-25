@@ -171,9 +171,9 @@ for (p in used_penalty_covYI){
   #                                  START                                  |
   #--------------------------------------------------------------------------
   other_models_vector = c("logLasso", "SCADSVM", "AucPR_L1")
-						   # c("logLasso","logElasticNet", "logSCAD", "logMCP",
-                        # "SCADSVM", "ElasticSCADSVM", "l1SVM", "enSVM",
-                        # "AucPR_L1", "AucPR_EN")
+			 # c("logLasso","logElasticNet", "logSCAD", "logMCP",
+          # "SCADSVM", "ElasticSCADSVM", "l1SVM", "enSVM",
+          # "AucPR_L1", "AucPR_EN")
 
   functions <- c("glmnet", "all_svm", "AucPR")
 
@@ -206,7 +206,7 @@ for (p in used_penalty_covYI){
  	                           a1_g=3.7, a2_g=3.7, penalty_g=p,
  	                           used_cores=used_cores,
  	                           c_function_of_covariates=c_function_of_covariates,
-								   run_aauc=FALSE))
+								   run_aauc=FALSE, max_iter_g=10))
  	 }
   }
 }

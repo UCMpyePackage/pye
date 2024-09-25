@@ -24,12 +24,12 @@ lambda, the number of its elements increases.}
 \item{lambda_start}{Starting value of lambda. If left big might take longer
 (default is 5)}
 
+\item{lambda_inf}{floor value for lambda (default is 1e-20)}
+
 \item{n_min_var}{Minimum number of variables at which the process stops}
 
 \item{factor}{Number to multiply or divide the considered lambda in the
 step. The higher, the slower to find the optimal value. Default is 2.}
-
-\item{lambda_min}{Minimum value of lambda to try (default is 0.1)}
 }
 \value{
 The first encountered value of the parameter (lambda inside the

@@ -51,7 +51,6 @@
 #' lambda <- 0.1
 #' betas <- rep(1, length(X))
 #' c <- 0
-#' prox_penalty <- get(paste0("proximal_operator_", penalty))
 #'
 #' PYE_result <- pye_KS(df=df[,names(df) %in% c(X,y)], X=X, y=y, betas=betas,
 #'   lambda=lambda, c=c, alpha=0.5, a1=3.7, a2=3, penalty=penalty)
@@ -60,6 +59,8 @@
 #' @importFrom evmix kdz
 #' @importFrom OptimalCutpoints optimal.cutpoints
 #' @importFrom plyr join
+#' @importFrom stats ecdf
+#' @importFrom ggplot2 geom_line aes labs theme_minimal
 #' @export
 pye_KS <- function(df, X=names(df[,!(names(df) == y)]), y="y", betas, lambda, c=0,
                    kernel="gaussian", alpha=0.5, a1=3.7, a2=3,
@@ -71,8 +72,8 @@ pye_KS <- function(df, X=names(df[,!(names(df) == y)]), y="y", betas, lambda, c=
 
   #Create a new df considering only the columns included in X (the regressors to consider) and y, the target variable
   #Create also the variable ID and add it at the beginning (useful for merges)
-  if (class(X) != "character"){stop("X can only be of class character or data.frame.")}
-  if (class(y) != "character"){stop("y can only be of class character or data.frame.")}
+  if (!inherits(class(X), "character")){stop("X can only be of class character or data.frame.")}
+  if (!inherits(class(y), "character")){stop("y can only be of class character or data.frame.")}
   if (length(c) != nrow(df)){
     if (length(c) == 1){
       c <- rep(c, nrow(df))
@@ -174,8 +175,8 @@ pye_KS <- function(df, X=names(df[,!(names(df) == y)]), y="y", betas, lambda, c=
     # Calcola le funzioni di distribuzione empirica con il kernel gaussiano
     z_y0_ord <- z_y0[order(z_y0)]
     z_y1_ord <- z_y1[order(z_y1)]
-    ecdf0 <- ecdf(z_y0_ord)
-    ecdf1 <- ecdf(z_y1_ord)
+    ecdf0 <- stats::ecdf(z_y0_ord)
+    ecdf1 <- stats::ecdf(z_y1_ord)
 
     # Crea un frame di dati per il plot
     plot_data <- data.frame(x = c(z_y0_ord, z_y1_ord),
@@ -183,10 +184,10 @@ pye_KS <- function(df, X=names(df[,!(names(df) == y)]), y="y", betas, lambda, c=
                             group = c(rep("CDF_y0",length(z_y0_ord)), rep("CDF_y1", length(z_y1_ord))))
 
     # Crea il plot
-    ggplot2::ggplot(plot_data, aes(x=x, y=y, color=group)) +
-      geom_line() +
-      labs(x = "Z", y = "CDF of Z for case and conntrol patients", color= "Groups") +
-      theme_minimal()
+    ggplot2::ggplot(plot_data, ggplot2::aes(x="x", y="y", color="group")) +
+      ggplot2::geom_line() +
+      ggplot2::labs(x = "Z", y = "CDF of Z for case and conntrol patients", color= "Groups") +
+      ggplot2::theme_minimal()
   }
 
   #evaluate the gradient
@@ -436,8 +437,6 @@ pye_KS <- function(df, X=names(df[,!(names(df) == y)]), y="y", betas, lambda, c=
 #' regressors_betas<-simMicroarrayData_cov02_dim50_covariates$nregressors
 #' penalty <- "SCAD"
 #' lambda <- 0.1
-#' c <- 0
-#' prox_penalty <- get(paste0("proximal_operator_", penalty))
 #' trend <- "monotone" #or "nonmonotone"
 #' beta_start_default <- "zeros"
 #' alpha <- 0.5
@@ -470,8 +469,8 @@ pye_KS_estimation <- function(df, X=names(df[,!(names(df) == y)]), y="y",
 
   #Create a new df considering only the columns included in X (the regressors_betas to consider) and y, the target variable
   #Create also the variable ID and add it at the beginning (useful for merges)
-  if (class(X) != "character"){stop("X can only be of class character or data.frame.")}
-  if (class(y) != "character"){stop("y can only be of class character or data.frame.")}
+  if (!inherits(class(X), "character")){stop("X can only be of class character or data.frame.")}
+  if (!inherits(class(y), "character")){stop("y can only be of class character or data.frame.")}
 
   #check if ID already exists in the dataset
   if("ID" %in% colnames(df)){stop("ID already exists as column in df! Please delete or rename this column since I need this name to set the internal ID")}
@@ -1347,8 +1346,6 @@ pye_KS.cv <- function (df, X, y, C, lambda, tau, trace=1, alpha, alpha_g, a1, a2
 #' regressors_betas<-simMicroarrayData_cov02_dim50_covariates$nregressors
 #' regressors_gammas<-simMicroarrayData_cov02_dim50_covariates$ncovariates
 #' penalty <- "SCAD"
-#' c <- 0
-#' prox_penalty = get(paste0("proximal_operator_", penalty))
 #' trend = "monotone" #or "nonmonotone"
 #' pye_starting_point = "zeros"
 #' alpha = 0.5
@@ -1357,7 +1354,7 @@ pye_KS.cv <- function (df, X, y, C, lambda, tau, trace=1, alpha, alpha_g, a1, a2
 #' used_cores <- 1
 #' used_penalty_pye <- c("L1", "MCP") #c("L12", "L1", "EN", "SCAD", "MCP")
 #' max_iter <- 10
-#' n_folds <- 5
+#' n_folds <- 3
 #'
 #' #pye Gaussian (and others) Kernel Smooth
 #' for (p in used_penalty_pye){
@@ -1479,10 +1476,10 @@ pye_KS_compute_cv <- function (n_folds, df, X=names(df[,!(names(df) %in% c(y,C))
 
   #Create a new df considering only the columns included in X (the regressors_betas to consider) and y, the target variable
   #Create also the variable ID and add it at the beginning (useful for merges)
-  if (class(X) != "character"){stop("X can only be of class character or data.frame.")}
-  if (class(y) != "character"){stop("y can only be of class character or data.frame.")}
+  if (!inherits(class(X), "character")){stop("X can only be of class character or data.frame.")}
+  if (!inherits(class(y), "character")){stop("y can only be of class character or data.frame.")}
   if(c_function_of_covariates==TRUE){
-    if (class(C) != "character"){stop("C can only be of class character or data.frame.")}
+    if (!inherits(class(C), "character")){stop("C can only be of class character or data.frame.")}
   }
 
   tau2 <- 0
@@ -1679,24 +1676,27 @@ pye_KS_compute_cv <- function (n_folds, df, X=names(df[,!(names(df) %in% c(y,C))
                           "fdr", "mcc", "corrclass")
     pye_KS_L12 <- pye_KS_L1 <- pye_KS_EN <- pye_KS_SCAD <- pye_KS_MCP <- NULL
     auc <- aauc <- aYI <- youden_index <- sensitivity <- specificity <- geometric_mean <- fdr <- mcc <- corrclass <- NULL
+	
+	#now we execute pye_KS.cv using the best lambda with respect of the measure in variable measure_to_select_lambda
+    lambda_star <- get(paste0("lambda_hat_pye_KS_", measure_to_select_lambda))
+	
     for (mes in list_of_measures){
-      #auc <- list (train = matrix(NA, nrow = n_folds, ncol = length(lambda), dimnames= list(foldnames,taunames)), test = matrix(NA, nrow = n_folds, ncol = length(lambda), dimnames= list(c(1:n_folds),taunames)))
-      assign(mes, lapply(lambda, function(x) list (train = matrix(NA, nrow = n_folds, ncol = length(tau), dimnames= list(foldnames,taunames)), test = matrix(NA, nrow = n_folds, ncol = length(tau), dimnames= list(c(1:n_folds),taunames)))))
-      eval(substitute(names(x)<- unlist(lapply(lambda, function (xx) paste("lambda", xx, sep="="))), list(x=as.symbol(mes))))
+      #auc <- list (train = matrix(NA, nrow = n_folds, ncol = length(lambda_star), dimnames= list(foldnames,taunames)), test = matrix(NA, nrow = n_folds, ncol = length(lambda_star), dimnames= list(c(1:n_folds),taunames)))
+      assign(mes, lapply(lambda_star, function(x) list (train = matrix(NA, nrow = n_folds, ncol = length(tau), dimnames= list(foldnames,taunames)), test = matrix(NA, nrow = n_folds, ncol = length(tau), dimnames= list(c(1:n_folds),taunames)))))
+      eval(substitute(names(x)<- unlist(lapply(lambda_star, function (xx) paste("lambda", xx, sep="="))), list(x=as.symbol(mes))))
     }
 
-    n_betas <- matrix(NA, nrow = n_folds, ncol = length(lambda), dimnames= list(foldnames, unlist(lapply(lambda, function (x) paste("lambda", x, sep="=")))))
-    n_gammas <- lapply(lambda, function(x) matrix(NA, nrow = n_folds, ncol = length(tau), dimnames= list(foldnames, taunames)))
-    names(n_gammas) <- unlist(lapply(lambda, function (x) paste("lambda", x, sep="=")))
+    n_betas <- matrix(NA, nrow = n_folds, ncol = length(lambda_star), dimnames= list(foldnames, unlist(lapply(lambda_star, function (x) paste("lambda", x, sep="=")))))
+    n_gammas <- lapply(lambda_star, function(x) matrix(NA, nrow = n_folds, ncol = length(tau), dimnames= list(foldnames, taunames)))
+    names(n_gammas) <- unlist(lapply(lambda_star, function (x) paste("lambda", x, sep="=")))
 
     betas <- vector(mode="list", length=n_folds)
     names(betas) <- unlist(lapply(1:n_folds, function (x) paste("fold", x, sep="=")))
     gammas <- vector(mode="list", length=n_folds)
     names(gammas) <- unlist(lapply(1:n_folds, function (x) paste("fold", x, sep="=")))
 
-    #now we execute pye_KS.cv using the best lambda with respect of the measure in variable measure_to_select_lambda
-    lambda_star <- get(paste0("lambda_hat_pye_KS_", measure_to_select_lambda))
-	  cat(" \n Starting the CV of tau using as lambda:", lambda_star, ", that is the best value of lambda as per:", measure_to_select_lambda, "\n")
+	cat(" \n Starting the CV of tau using as lambda:", lambda_star, ", that is the best value of lambda as per:", measure_to_select_lambda, "\n")
+	
     #re-fill the matrices
     results <- mapply(function(k) pye_KS.cv(df=df1[,names(df1)!="ID"], X=X, y=y, C=C, lambda=lambda_star, tau=tau, trace=trace,
                                             alpha=alpha, a1=a1, a2=a2, penalty=penalty, alpha_g=alpha_g, penalty_g=penalty_g,
@@ -1719,7 +1719,7 @@ pye_KS_compute_cv <- function (n_folds, df, X=names(df[,!(names(df) %in% c(y,C))
                                             regressors_gammas=regressors_gammas, max_iter_g=max_iter_g, delta_g=delta_g,
                                             max_alpha_g=max_alpha_g, stepsizeShrink_g=stepsizeShrink_g,
                                             min_alpha_g=min_alpha_g, convergence_error_g=convergence_error_g,
-											                      run_aauc=run_aauc, long_suffix=long_suffix),
+											run_aauc=run_aauc, long_suffix=long_suffix),
                                             seq(1:n_folds))
 
     wrapper <- function(results, mes, i, dataset, tau){

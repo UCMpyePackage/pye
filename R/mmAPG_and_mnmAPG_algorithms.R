@@ -61,7 +61,7 @@
 #' penalty <- "L12"
 #' c_zero_fixed <- TRUE
 #' lambda <- 0.1
-#' max_iter <- 100
+#' max_iter <- 10
 #' kernel <- "gaussian"
 #' if (penalty == "SCAD") {a=3.7} else {a=3.0}
 #' prox_penalty <- get(paste0("proximal_operator_", penalty))
@@ -527,7 +527,7 @@ mmAPG <- function(x0, c_pos=length(x0), delta_fx, proxx, Fx, lambda=NULL, penalt
 #' penalty <- "L12"
 #' c_zero_fixed <- TRUE
 #' lambda <- 0.1
-#' max_iter <- 100
+#' max_iter <- 10
 #' kernel <- "gaussian"
 #' if (penalty == "SCAD") {a=3.7} else {a=3.0}
 #' prox_penalty <- get(paste0("proximal_operator_", penalty))
@@ -947,8 +947,8 @@ test_parameters <- function(df, X=names(df[,!(names(df) == y)]) , y="y", stepsiz
                             min_alpha=c(1e-7, 1e-10, 1e-12), lambda=0.5, kernel="gaussian", alpha=0.5,
                             a1=3.7, a2=3, penalty="L1"){
 
-  if (class(X) != "character"){stop("X can only be of class character")}
-  if (class(y) != "character"){stop("y can only be of class character or data.frame.")}
+  if (!inherits(class(X), "character")){stop("X can only be of class character")}
+  if (!inherits(class(y), "character")){stop("y can only be of class character or data.frame.")}
 
   #check if ID already exists in the dataset
   if("ID" %in% colnames(df)){stop("ID already exists as column in df! Please delete or rename this column since I need this name to set the internal ID")}

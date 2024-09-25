@@ -34,8 +34,13 @@ test samples. Default is 2000, for an high-dimensional setting}
 \item{cols_cov}{number of covariate variables of both the training and the
 test samples. Default is 20, increase it for an high-dimensional setting}
 
-\item{covar}{covariance in the covariace matrix of the normal distribution.
-Increasing it, the created features are more correlated. Default is 0.5}
+\item{covar}{covariance in the covariace matrix of the normal distribution
+of the biomarkers. Increasing it, the created features are more correlated.
+Default is 0.3}
+
+\item{covar_cov}{covariance in the covariace matrix of the normal distribution
+of the covariates. Increasing it, the created covariates are more correlated.
+Default is 0.5}
 
 \item{mu}{mean of the (multivariate) normal distribution of the regressors.
 Default is 0}

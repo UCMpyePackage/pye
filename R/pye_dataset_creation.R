@@ -13,7 +13,7 @@
 # 0.2   0.5  0.8
 #
 # function to generate the correlated regressors following different distributions
-# @importFrom Matrix bdiag
+#' @importFrom Matrix bdiag
 #' @importFrom MASS mvrnorm
 create_variables = function(rows, cols, cov, mu=rep(0,cols), seed=1){
   set.seed(seed)
@@ -77,7 +77,7 @@ create_variables = function(rows, cols, cov, mu=rep(0,cols), seed=1){
 }
 
 # function to generate the correlated regressors following different distributions
-# @importFrom Matrix bdiag
+#' @importFrom Matrix bdiag
 #' @importFrom MASS mvrnorm
 create_covariates <- function(rows, cols_cov, cov, mu_cov=rep(0,cols_cov), seed=1){
   set.seed(seed)
@@ -242,8 +242,12 @@ create_sample <- function (rows_train=50, cols=2000, cov=0.5, mu=rep(0, cols),
 #' test samples. Default is 2000, for an high-dimensional setting
 #' @param cols_cov number of covariate variables of both the training and the
 #' test samples. Default is 20, increase it for an high-dimensional setting
-#' @param covar covariance in the covariace matrix of the normal distribution.
-#' Increasing it, the created features are more correlated. Default is 0.5
+#' @param covar covariance in the covariace matrix of the normal distribution
+#' of the biomarkers. Increasing it, the created features are more correlated.
+#' Default is 0.3
+#' @param covar_cov covariance in the covariace matrix of the normal distribution
+#' of the covariates. Increasing it, the created covariates are more correlated.
+#' Default is 0.5
 #' @param mu mean of the (multivariate) normal distribution of the regressors.
 #' Default is 0
 #' @param mu_cov mean of the (multivariate) normal distribution of the
@@ -315,7 +319,7 @@ create_sample_with_covariates <- function(rows_train=50, cols=2000, cols_cov=20,
   rows<-rows_train+rows_test
 
   cv <- create_covariates(rows=rows, cols_cov=cols_cov, cov=covar_cov, mu_cov=mu_cov, seed=seed)
-  addOn_for_mu <- (rowMeans(cv + sin(cv)) - mean(rowMeans(cv + sin(cv))))/ sd(rowMeans(cv + sin(cv)))
+  addOn_for_mu <- (rowMeans(cv + sin(cv)) - mean(rowMeans(cv + sin(cv))))/ stats::sd(rowMeans(cv + sin(cv)))
   addOn_for_cov <- rowMeans(cv + sin(cv))
 
   df <- 0.6*addOn_for_mu + create_variables(rows=rows, cols=cols, cov=covar, mu=mu, seed=seed+1)
@@ -409,4 +413,192 @@ create_sample_with_covariates <- function(rows_train=50, cols=2000, cols_cov=20,
               ncovariates=ncovariates, covariates=covariates, coefficients_covariates=coefficients_cv,
               target=target, linearformula_z=linearformula_z, linearformula_cutoff=linearformula_cutoff,
               X=X, y=y, C=C, z=z, cutoff=cutoff_cv))
+}
+
+
+#' @title PBC_data_load
+#'
+#' @description function to load the Mayo Clinic Primary Biliary Cholangitis
+#' Data (PBC) ready to be used in longpye.
+#'
+#' @param T latest time to consider, i.e. from 1 to T. 4 is the default because
+#' we already excluded the subjects with less than 4 visits.
+#'
+#' @return the Mayo Clinic Primary Biliary Cholangitis Data (PBC) ready to be
+#' used in longpye
+#'
+#' @examples
+#' library(pye)
+#' df <- PBC_Mayo_Clinic_data_for_longpye()
+#'
+#' @export
+PBC_Mayo_Clinic_data_for_longpye <- function(T=4){
+
+  require("survival")
+  require("pye")
+  data(pbc, package="survival")
+  df_PBC <- pbcseq #this is the dataset to be used, not pbc
+  #df_PBC2 <- pbc #we could use pbc just tu add copper and trig variables at the starting time point
+  df_PBC_ordered <- df_PBC[order(df_PBC$id, df_PBC$futime, df_PBC$day),]
+  #unique(df_PBC_ordered$id)
+  #19 variables, 312 subjects (IDs) with 1.945 clinical visits recorded
+
+  #DETAILS:
+  #Primary sclerosing cholangitis is an autoimmune disease leading to destruction
+  #of the small bile ducts in the liver. Progression is slow but inexhortable,
+  #eventually leading to cirrhosis and liver decompensation. The condition has been
+  #recognized since at least 1851 and was named "primary biliary cirrhosis" in 1949.
+  #Because cirrhosis is a feature only of advanced disease, a change of its name
+  #to "primary biliary cholangitis" was proposed by patient advocacy groups in 2014.
+
+  #This data is from the Mayo Clinic trial in PBC conducted between 1974 and 1984.
+  #A total of 424 PBC patients, referred to Mayo Clinic during that ten-year
+  #interval, met eligibility criteria for the randomized placebo controlled trial
+  #of the drug D-penicillamine. The first 312 cases in the data set participated
+  #in the randomized trial and contain largely complete data. The additional 112
+  #cases did not participate in the clinical trial, but consented to have basic
+  #measurements recorded and to be followed for survival. Six of those cases were
+  #lost to follow-up shortly after diagnosis, so the data here are on an
+  #additional 106 cases as well as the 312 randomized participants.
+
+
+  #VARIABLE DESCRIPTION and DATA PREPARATION:
+  #1) id: case number
+  #2) futime: number of days between registration and the earlier of death, transplantion, or study analysis in July, 1986
+  #3) status: status at endpoint - 0=alive, 1=transplanted, 2=dead
+  #4) trt: drug - 1= D-penicillamine, 0=placebo
+  #5) age in years, at registration
+  #6) sex: m/f
+  #df_PBC_ordered$sex
+  sex <- as.data.frame(list("sex"=ifelse(df_PBC_ordered$sex=="m",1,0)))
+  #7) day: number of days between enrollment and this visit date, remaining values on the line of data refer to this visit date.
+  #8) ascites: presence of ascites: 0=no 1=yes and NAs
+  #df_PBC_ordered$ascites
+  ascites <- as.data.frame(list("ascites"=factor(df_PBC_ordered$ascites, exclude = NULL)))
+  ascites <- model.matrix(~.-1, data = ascites, contrasts.arg = list(ascites = contrasts(ascites$ascites, contrasts=FALSE)))
+  #9) hepato: presence of hepatomegaly or enlarged liver 0=no 1=yes
+  #df_PBC_ordered$hepato
+  hepato <- as.data.frame(list("hepato"=factor(df_PBC_ordered$hepato, exclude = NULL)))
+  hepato <- model.matrix(~.-1, data = hepato, contrasts.arg = list(hepato = contrasts(hepato$hepato, contrasts=FALSE)))
+  #10) spiders: presence of spiders 0=no 1=yes (blood vessel malformations in the skin)
+  #df_PBC_ordered$spiders
+  spiders <- as.data.frame(list("spiders"=factor(df_PBC_ordered$spiders, exclude = NULL)))
+  spiders <- model.matrix(~.-1, data = spiders, contrasts.arg = list(spiders = contrasts(spiders$spiders, contrasts=FALSE)))
+  #11) edema: presence of edema 0=no edema and no diuretic therapy for edema; 0.5 = edema present without diuretics (untreated), or edema resolved by diuretics (successfully treated); 1 = edema despite diuretic therapy
+  #df_PBC_ordered$edema
+  edema <- as.data.frame(list("edema"=factor(df_PBC_ordered$edema, exclude = NULL)))
+  edema <- model.matrix(~.-1, data = edema, contrasts.arg = list(edema = contrasts(edema$edema, contrasts=FALSE)))
+  #12) bili: serum bilirubin in mg/dl
+  #13) chol: serum cholesterol in mg/dl
+  #df_PBC_ordered$chol
+  cholNA <- as.data.frame(list("cholNA"=ifelse(is.na(df_PBC_ordered$chol),1,0))) #create a flag variable when chol is NA
+  chol <- df_PBC_ordered["chol"]
+  chol[is.na(chol)] <- mean(chol[!is.na(chol)]) #input the mean value to chol
+  #14) albumin: serum albumin in gm/dl
+  #15) alk.phos: alkaline phosphatase in U/liter
+  #df_PBC_ordered$alk.phos
+  alk.phosNA <- as.data.frame(list("alk.phosNA"=ifelse(is.na(df_PBC_ordered$alk.phos),1,0))) #create a flag variable when alk.phos is NA
+  alk.phos <- df_PBC_ordered["alk.phos"]
+  alk.phos[is.na(alk.phos)] <- mean(chol[!is.na(alk.phos)]) #input the mean value to alk.phos
+  #16) ast: aspartate aminotransferase, once called SGOT in U/ml (serum glutamic-oxaloacetic transaminase, the enzyme name has subsequently changed to "ALT" in the medical literature)
+  #17) platelet: platelets per cubic ml / 1000
+  #df_PBC_ordered$platelet
+  plateletNA <- as.data.frame(list("plateletNA"=ifelse(is.na(df_PBC_ordered$platelet),1,0))) #create a flag variable when platelet is NA
+  platelet <- df_PBC_ordered["platelet"]
+  platelet[is.na(platelet)] <- mean(platelet[!is.na(platelet)]) #input the mean value to platelet
+  #18) protime: prothrombin time in seconds (standardised blood clotting time)
+  #19) stage: histologic stage of disease (needs biopsy)
+  #df_PBC_ordered$stage
+  stage <- as.data.frame(list("stage"=factor(df_PBC_ordered$stage, exclude = NULL)))
+  stage <- model.matrix(~.-1, data = stage, contrasts.arg = list(stage = contrasts(stage$stage, contrasts=FALSE)))
+
+  df_PBC_ordered_new <- cbind(df_PBC_ordered["id"], df_PBC_ordered["futime"], df_PBC_ordered["status"],
+                              df_PBC_ordered["trt"], df_PBC_ordered["age"], sex, df_PBC_ordered["day"],
+                              ascites, hepato, spiders, edema, df_PBC_ordered["bili"],
+                              chol, cholNA, df_PBC_ordered["albumin"], alk.phos, alk.phosNA,
+                              df_PBC_ordered["ast"], platelet, plateletNA, df_PBC_ordered["protime"],
+                              stage)
+
+  #check
+  #sum(!complete.cases(df_PBC_ordered_new))
+  #no more NAs
+
+  #TARGET VARIABLE "status": status at endpoint, 0/1/2 for censored, transplant, dead
+  #table(df_PBC_ordered_new$status)
+  #  0    1    2
+  #1073  147  725
+
+  #let's delete the transplanted patients (they can bias the outcome)
+  df_PBC_ordered2 <- df_PBC_ordered_new[!(df_PBC_ordered_new$status == 1),]
+  #unique(df_PBC_ordered2$id)
+  #283 subjects (IDs) with 1798 clinical visits recorded
+
+  #TARGET VARIABLE "status": status at endpoint, 0/1/2 for censored, transplant, dead
+  #table(df_PBC_ordered2$status)
+  #  0    2
+  #1073  725
+
+  #We will consider the bivariate variable dead (1) / alive (0) at the endpoint (or censoring time) as target variable
+  df_PBC_ordered2["y"] <- ifelse(df_PBC_ordered2$status < 2, 0, 1)
+
+  #let's consider only the ones with no left censored
+  #unique(df_PBC_ordered2[df_PBC_ordered2$day==0,][,"id"])
+  #all the subjects had the starting visit at t=0
+
+  #Let's consider only subjects with at least 4 visits
+  df_PBC_ordered2 <- transform(df_PBC_ordered2, count=ave(id, id, FUN=seq_along))
+  t1 <- df_PBC_ordered2[order(df_PBC_ordered2$id, -df_PBC_ordered2$count), ]
+  t1 <- t1[!duplicated(t1[,c('id')]),][,]
+  filtered_ids <- t1[t1$count > 3,]$id
+  df_PBC_filtered <- df_PBC_ordered2[df_PBC_ordered2$id %in% filtered_ids,]
+  #nrow(df_PBC_filtered)
+  #length(unique(df_PBC_filtered$id))
+  #207 subjects remained with 1645 visits
+  #table(df_PBC_filtered$y)
+  #  0    1
+  #1011  634
+
+  #distribution of count and y:
+  t1 <- df_PBC_filtered[order(df_PBC_filtered$id, -df_PBC_filtered$count), ]
+  t1 <- t1[!duplicated(t1[,c('id')]),][,]
+  cbind(table(subset(t1, select = c('count', 'y'))), tot = table(t1$count))
+
+  #times 14,15 and 16 has zero diseased. I have to exclude these times:
+  t1 <- df_PBC_filtered[order(df_PBC_filtered$id, -df_PBC_filtered$count), ]
+  t1 <- t1[!duplicated(t1[,c('id')]),][,]
+  filtered_ids2 <- t1[t1$count < 14,]$id
+  df_PBC_filtered2 <- df_PBC_filtered[df_PBC_filtered$id %in% filtered_ids2,]
+  #nrow(df_PBC_filtered2)
+  #length(unique(df_PBC_filtered2$id))
+  #193 subjects remained with 1437 visits
+  table(df_PBC_filtered2$y)
+  #  0    1
+  # 803  634
+
+  #distribution of count and y:
+  t1 <- df_PBC_filtered2[order(df_PBC_filtered2$id, -df_PBC_filtered2$count), ]
+  t1 <- t1[!duplicated(t1[,c('id')]),][,]
+  cbind(table(subset(t1, select = c('count', 'y'))), tot = table(t1$count))
+
+  #scaled version of the dataset
+  df_PBC_scaled_all <- scaling_df_for_pye (df=df_PBC_filtered2, X=colnames(df_PBC_filtered2[,!colnames(df_PBC_filtered2) %in% c("id", "futime", "status", "y", "count")]), y="y")
+
+  #train-test split (70-30)
+  split_df_PBC_all <- sample(rep(1:nrow(df_PBC_filtered2)), size=(round(nrow(df_PBC_filtered2)*0.7,0)), replace=FALSE)
+  #standardize df
+  train_df_PBC_scaled <- df_PBC_scaled_all$df_scaled[split_df_PBC_all,]
+  test_df_PBC_scaled <- df_PBC_scaled_all$df_scaled[-split_df_PBC_all,]
+
+  #TEST: consider only the full dataframe, i.e. only the t=1-4 periods
+  #df <- df_PBC_scaled_all$df_scaled #<- the full dataset
+  #df <- df_PBC_scaled_all$df_scaled[df_PBC_scaled_all$df_scaled$count %in% c(1,2,3,4),] #<- we consider only t=4 (193 complete subjects)
+  subjects_to_select <- df_PBC_scaled_all$df_scaled$id %in% df_PBC_scaled_all$df_scaled$id[df_PBC_scaled_all$df_scaled$count == T]
+  df <- df_PBC_scaled_all$df_scaled[subjects_to_select & df_PBC_scaled_all$df_scaled$count %in% c(1,2,3,4,5,6),] #<- we consider only t=6 (129 complete subjects)
+  X <- colnames(df[,!colnames(df) %in% c("id", "futime", "status", "y", "count")])
+  y <- "y"
+  t <- "count"
+  id <- "id"
+
+  return(list(df=df, X=X, y=y, t=t, id=id,
+              train_df_PBC_scaled=train_df_PBC_scaled, test_df_PBC_scaled=test_df_PBC_scaled))
 }

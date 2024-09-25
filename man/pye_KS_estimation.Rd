@@ -135,8 +135,6 @@ C <- simMicroarrayData_cov02_dim50_covariates$C
 regressors_betas<-simMicroarrayData_cov02_dim50_covariates$nregressors
 penalty <- "SCAD"
 lambda <- 0.1
-c <- 0
-prox_penalty <- get(paste0("proximal_operator_", penalty))
 trend <- "monotone" #or "nonmonotone"
 beta_start_default <- "zeros"
 alpha <- 0.5

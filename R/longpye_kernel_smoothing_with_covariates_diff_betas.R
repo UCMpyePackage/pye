@@ -4,7 +4,9 @@
 #' based on the Kernel Smooth density estimator. It not only evaluate PYE in
 #' logitudinal case, but it returns all the necessary for the estimation
 #' process, like measure of fit and derivatives. It works for all the
-#' considered penalties (L12, L1, EN, SCAD and MCP)
+#' considered penalties (L12, L1, EN, SCAD and MCP). In this variant we study
+#' the case in which we estimate the different beta for the times of the
+#' same feature (like Y = b0 + b1 x1t1 + b2 x1t2 +  b3 x1t3 + ....).
 #'
 #' @param df the input dataset
 #' @param X regressors to consider in the estimation. It can be of type
@@ -52,16 +54,21 @@
 #' lambda <- 0.1
 #' betas <- rep(1, length(X))
 #' c <- 0
-#' prox_penalty <- get(paste0("proximal_operator_", penalty))
 #'
-#' PYE_result <- pye_KS(df=df[,names(df) %in% c(X,y)], X=X, y=y, betas=betas,
+#' longpye_KS <- pye_KS(df=df[,names(df) %in% c(X,y)], X=X, y=y, betas=betas,
 #'   lambda=lambda, c=c, alpha=0.5, a1=3.7, a2=3, penalty=penalty)
 #' print(PYE_result)
 #'
-#' @importFrom evmix kdz
 #' @importFrom OptimalCutpoints optimal.cutpoints
 #' @importFrom plyr join
-#' @importFrom Matrix nearPD
+#' @importFrom Matrix nearPD colSums
+#' @importFrom expm sqrtm
+#' @importFrom matrixcalc is.positive.definite
+#' @importFrom mnormt pmnorm
+#' @importFrom numDeriv grad
+#' @importFrom grDevices boxplot.stats
+#' @importFrom stats setNames ecdf
+#' @importFrom ggplot2 geom_line aes labs theme_minimal
 #' @export
 longpye_KS <- function(df_train, df_test=NULL, id="id", X=names(df_train[,!(names(df_train) %in% c(y,id,t))]),
                        y="y", t="t", betas, lambda,
@@ -74,10 +81,10 @@ longpye_KS <- function(df_train, df_test=NULL, id="id", X=names(df_train[,!(name
   if (nrow(df_train)==0){stop("df_train has no rows")}
 
   #checks
-  if (class(X) != "character"){stop("X can only be of class character or data.frame.")}
-  if (class(y) != "character"){stop("y can only be of class character or data.frame.")}
-  if (class(t) != "character"){stop("t can only be of class character or data.frame.")}
-  if (class(c) == "character"){ c <- df_train[,c]
+  if (!inherits(class(X), "character")){stop("X can only be of class character or data.frame.")}
+  if (!inherits(class(y), "character")){stop("y can only be of class character or data.frame.")}
+  if (!inherits(class(t), "character")){stop("t can only be of class character or data.frame.")}
+  if (!inherits(class(c), "character")){ c <- df_train[,c]
   } else if ((length(c) == 1) & (sum(nrow(c))<2)){ #it is just a single element
     c <- rep(c, length(unique(df_train[,t])))
     names(c) <- order(unique(df_train[,t]))
@@ -210,9 +217,9 @@ longpye_KS <- function(df_train, df_test=NULL, id="id", X=names(df_train[,!(name
   if(!matrixcalc::is.positive.definite(Gamma0, tol=1e-8)){
     #tranform the matrix in positive-definte:
     #method 1)
-    if (!require(Matrix)) {
-      install.packages("Matrix")
-    }
+    #if (!require(Matrix)) {
+    #  install.packages("Matrix")
+    #}
 
     # Find the nearest positive definite matrix
     Gamma0 <- as.matrix(Matrix::nearPD(Gamma0)$mat)
@@ -255,9 +262,9 @@ longpye_KS <- function(df_train, df_test=NULL, id="id", X=names(df_train[,!(name
   if(!matrixcalc::is.positive.definite(Gamma1, tol=1e-8)){
     #tranform the matrix in positive-definte:
     #method 1)
-    if (!require(Matrix)) {
-      install.packages("Matrix")
-    }
+    #if (!require(Matrix)) {
+    #  install.packages("Matrix")
+    #}
     # Find the nearest positive definite matrix
     Gamma1 <- as.matrix(Matrix::nearPD(Gamma1)$mat)
 
@@ -447,16 +454,16 @@ longpye_KS <- function(df_train, df_test=NULL, id="id", X=names(df_train[,!(name
         z_y0_ord <- z_y0[order(z_y0)]
         z_y1_ord <- z_y1[order(z_y1)]
         #correction of the outliers just for plotting
-        z_y0_ord[z_y0_ord %in% boxplot.stats(z_y0_ord)$out] <- min(boxplot.stats(z_y0_ord)$stats[5])
-        z_y1_ord[z_y1_ord %in% boxplot.stats(z_y1_ord)$out] <- min(boxplot.stats(z_y1_ord)$stats[5])
-        ecdf0 <- ecdf(z_y0_ord)
-        ecdf1 <- ecdf(z_y1_ord)
+        z_y0_ord[z_y0_ord %in% grDevices::boxplot.stats(z_y0_ord)$out] <- min(boxplot.stats(z_y0_ord)$stats[5])
+        z_y1_ord[z_y1_ord %in% grDevices::boxplot.stats(z_y1_ord)$out] <- min(boxplot.stats(z_y1_ord)$stats[5])
+        ecdf0 <- stats::ecdf(z_y0_ord)
+        ecdf1 <- stats::ecdf(z_y1_ord)
         plot_data <- data.frame(x = c(z_y0_ord, z_y1_ord),
                                 y = c(ecdf0(z_y0_ord), ecdf1(z_y1_ord)),
                                 group = c(rep("CDF_Y0",length(z_y0_ord)), rep("CDF_Y1", length(z_y1_ord))))
 
         # Crea il plot
-        print(ggplot2::ggplot(plot_data, ggplot2::aes(x=x, y=y, color=group)) +
+        print(ggplot2::ggplot(plot_data, ggplot2::aes(x="x", y="y", color="group")) +
                 ggplot2::geom_line() +
                 ggplot2::labs(x="log[Pr(Y=1)/Pr(Y=0)]", y = "CDF of the log-posterior probability ratiofor case and conntrol patients", color="Groups") +
                 ggplot2::theme_minimal())
@@ -715,9 +722,9 @@ longpye_KS_estimation <- function(df, id="id", X=names(df[,!(names(df) %in% c(y,
 
   #Create a new df considering only the columns included in X (the regressors_betas to consider) and y, the target variable
   #Create also the variable ID and add it at the beginning (useful for merges)
-  if (class(X) != "character"){stop("X can only be of class character or data.frame.")}
-  if (class(y) != "character"){stop("y can only be of class character or data.frame.")}
-  if (class(t) != "character"){stop("t can only be of class character or data.frame.")}
+  if (!inherits(class(X), "character")){stop("X can only be of class character or data.frame.")}
+  if (!inherits(class(y), "character")){stop("y can only be of class character or data.frame.")}
+  if (!inherits(class(t), "character")){stop("t can only be of class character or data.frame.")}
 
   #check if ID already exists in the dataset
   if("ID_rows" %in% colnames(df)){stop("ID_rows already exists as column in df! Please delete or rename this column since I need this name to set the internal ID")}
@@ -1350,7 +1357,7 @@ longpye_KS.cv <- function (df, X, y, C, id, t, lambda, trace=1, alpha, a1, a2, p
 #' used_cores <- 1
 #' used_penalty_pye <- c("L1", "MCP") #c("L12", "L1", "EN", "SCAD", "MCP")
 #' max_iter <- 10
-#' n_folds <- 5
+#' n_folds <- 3
 #'
 #' #pye Gaussian (and others) Kernel Smooth
 #' for (p in used_penalty_pye){
@@ -1400,7 +1407,7 @@ longpye_KS.cv <- function (df, X, y, C, id, t, lambda, trace=1, alpha, a1, a2, p
 #'
 #'
 #' @export
-longpye_KS_compute_cv <- function (n_folds, df, X=names(df[,!(names(df) %in% c(y,C))]), y="y",
+longpye_KS_compute_cv <- function (n_folds, df, X=names(df[,!(names(df) %in% c(y))]), y="y",
                                 id="id", t="t", lambda, trace=1,
                                 alpha=0.5,
                                 a1=3.7, a2=3, penalty="L1", regressors_betas=NULL,
@@ -1420,9 +1427,9 @@ longpye_KS_compute_cv <- function (n_folds, df, X=names(df[,!(names(df) %in% c(y
 
   #Create a new df considering only the columns included in X (the regressors_betas to consider) and y, the target variable
   #Create also the variable ID and add it at the beginning (useful for merges)
-  if (class(X) != "character"){stop("X can only be of class character or data.frame.")}
-  if (class(y) != "character"){stop("y can only be of class character or data.frame.")}
-  if (class(t) != "character"){stop("t can only be of class character or data.frame.")}
+  if (!inherits(class(X), "character")){stop("X can only be of class character or data.frame.")}
+  if (!inherits(class(y), "character")){stop("y can only be of class character or data.frame.")}
+  if (!inherits(class(t), "character")){stop("t can only be of class character or data.frame.")}
 
   #check if ID already exists in the dataset
   if("ID_rows" %in% colnames(df)){stop("ID_rows already exists as column in df! Please delete or rename this column since I need this name to set the internal ID")}
@@ -1556,7 +1563,7 @@ longpye_KS_compute_cv <- function (n_folds, df, X=names(df[,!(names(df) %in% c(y
     cat("----------------> For the whoole Cross-validation it took:", cv_time, "minutes \n")
   }
 
-  return(list(penalty=penalty, kernel=kernel, cv_time=cv_time, pye_KS_L12=pye_KS_L12,
+  return(list(penalty=penalty, kernel=kernel, cv_time=cv_time, longpye_KS_L12=longpye_KS_L12,
               longpye_KS_L1=longpye_KS_L1, longpye_KS_EN=longpye_KS_EN, longpye_KS_SCAD=longpye_KS_SCAD,
               longpye_KS_MCP=longpye_KS_MCP,
               auc=auc, youden_index=youden_index, sensitivity=sensitivity,
@@ -1566,6 +1573,6 @@ longpye_KS_compute_cv <- function (n_folds, df, X=names(df[,!(names(df) %in% c(y
               lambda_hat_pye_KS_ccr=lambda_hat_pye_KS_ccr, lambda_hat_pye_KS_sen=lambda_hat_pye_KS_sen,
               lambda_hat_pye_KS_spc=lambda_hat_pye_KS_spc,lambda_hat_pye_KS_gm=lambda_hat_pye_KS_gm,
               lambda_hat_pye_KS_pye=lambda_hat_pye_KS_pye, measure_to_select_lambda=measure_to_select_lambda,
-              lambda_star=lambda_star, n_betas=n_betas, betas=betas))
+              n_betas=n_betas, betas=betas))
 }
 
