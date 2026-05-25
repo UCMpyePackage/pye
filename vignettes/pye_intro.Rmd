@@ -1,0 +1,154 @@
+---
+title: "Introduction to pye and covYI estimators"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to pye and covYI estimators}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+options(digits = 4)
+```
+
+```{r setup}
+library(pye)
+```
+## 1. Package Introduction and Objective
+
+The pye package provides an advanced framework for simultaneous variable selection and prediction within low- and high-dimensional binary classification contexts.
+Its core methodology focuses on maximizing the penalized Youden index function $F_{Y=0}(\theta) - F_{Y=1}(\theta) - \Phi(\theta)$ with respect of the parameter vector $\theta$, 
+where $F_{Y=y}(\theta)$ represents the distribution function of the feature combination for class $Y=y$ and $\Phi(\theta)$ is a sparsity-inducing penalty term.
+For the Penalized Youden Index Estimator (pye) - https://doi.org/10.1016/j.chemolab.2023.104786 -, $\theta$ corresponds to the coefficients of a linear combination of biomarkers $\beta$ together with diagnostic cut-off point $c$.
+For the Covariate-Adjusted Youden Index Estimator (covYI), the biomarker score is a single known marker, and $\theta$ denotes the coefficients of the linear combination of covariate that define the diagnostic cut-off point $c$.
+pye is particularly suited for applications in medical diagnostics, where identifying a subset of relevant biomarkers is crucial for effective disease classification.
+covYI extends this framework by allowing the diagnostic cut-off to depend on patient covariates, thereby enhancing the accuracy of the biomarkers in heterogeneous populations.
+
+The package implements two primary methodologies:
+
+**Penalized Youden Index Estimator (pye):** The base estimator combining the Youden index function with sparsity-inducing penalization techniques (Lasso, SCAD, MCP) for simultaneous biomarker selection.
+
+**Covariate-Adjusted Youden Index Estimator (covYI):** An extension of pye that allows the optimal diagnostic cut-off to be a linear function of patient covariates, improving the classification accuracy of the biomarker score.
+
+## 3. Example Workflow
+
+This section outlines a typical workflow. In practice, the user must define the specific functions for the gradient (`delta_fx`) and the proximal operator (`proxx`) based on their chosen penalty (e.g., SCAD, L1) and data structure.
+
+```{r simulation}
+# Load the package
+library(pye)
+
+# 1. Simulate data for the example
+set.seed(123) # Always good to set a seed for reproducibility in examples
+cols <- 200
+cols_cov <- 20
+max_rho <- 0.2
+rows_train <- 200
+sim_data <- create_sample_with_covariates(rows_train = rows_train, 
+                                          cols = cols, 
+                                          cols_cov = cols_cov, 
+                                          max_rho = max_rho, 
+                                          seed = 1)
+df <- sim_data$train_df_scaled
+X <- sim_data$X
+y <- sim_data$y
+C <- sim_data$C
+regressors_betas <- sim_data$nregressors # True betas for evaluation
+regressors_gammas <- sim_data$ncovariates # True gammas for evaluation
+
+# 2. Set cross-validation parameters
+penalty <- "SCAD" # Penalty for betas in pye estimation
+penalty_g <- "L12" # Penalty for gammas in covYI estimation
+trend <- "monotone" # Trend for the KS estimation
+alpha <- 0.5
+c_function_of_covariates <- TRUE # Use covariates for 'c' estimation
+used_cores <- 1 # For this example, no parallelization
+max_iter <- 10 # Keep iterations low for a quick example run
+n_folds <- 3
+
+# 3. Calibrate lambda_max and lambda_min for betas (pye estimation)
+lambda_seq <- create_lambda(n = 4, lmax = 1.5, lmin = 0.1)
+lambda_seq <- as.numeric(formatC(lambda_seq, format = "e", digits = 9))
+
+# 4. Calibrate tau_max and tau_min for gammas (covYI estimation), if
+tau_seq <- create_lambda(n = 4, lmax = 0.15, lmin = 0.05)
+tau_seq <- as.numeric(formatC(tau_seq, format = "e", digits = 9))
+
+# 5. Run the cross-validation
+pye_cv_result <- pye_KS_compute_cv(
+  n_folds = n_folds,
+  df = df,
+  X = X,
+  y = y,
+  C = C,
+  lambda = lambda_seq,
+  tau = tau_seq,
+  trace = 1, # Show final results
+  alpha = alpha,
+  penalty = penalty,
+  regressors_betas = regressors_betas,
+  regressors_gammas = regressors_gammas,
+  seed = 1,
+  used_cores = used_cores,
+  trend = trend,
+  max_iter = max_iter,
+  c_function_of_covariates = c_function_of_covariates,
+  measure_to_select_lambda = "ccr",
+  penalty_g = penalty_g,
+  trend_g = trend,
+  max_iter_g = max_iter
+)
+
+# 6. Print results and access optimal lambda/tau
+cat("\nOptimal Lambda (based on CCR):", pye_cv_result$lambda_hat_ccr, "\n")
+if (c_function_of_covariates == TRUE) {
+  cat("Optimal Tau (based on CCR):", pye_cv_result$tau_hat_ccr, "\n")
+}
+
+# You can access other results like:
+pye_cv_result$auc # AUC values
+pye_cv_result$n_betas # Number of non-zero betas for each lambda
+pye_cv_result$n_gammas # Number of non-zero gammas for each tau
+
+# 7. Compute the performance over 50 simulations with the optimal lambda and tau
+sim_result <- pye_KS_simulation_study(
+  n = 5,
+  df = df, 
+  X = X, 
+  y = y, 
+  C = C,
+  lambda = pye_cv_result$lambda_hat_ccr,
+  tau = pye_cv_result$tau_hat_ccr,
+  trace = 1,
+  penalty = penalty, # Options: "L12", "L1", "EN", "SCAD", "MCP"
+  penalty_g = penalty_g, # Options: "L12", "L1", "EN", "SCAD", "MCP"
+  used_cores = 1,
+  c_function_of_covariates = c_function_of_covariates,
+  max_iter = max_iter, # Reduced for a quick example
+  max_iter_g = 20 # Reduced for a quick example
+)
+
+# 8. View summary of simulation results
+colMeans(sim_result$corrclass)
+colMeans(sim_result$corrclass_covYI)
+```
+
+### Interpretation
+
+The estimated coefficients $\hat{\beta}$ (typically element `x1` in the output list) provide the optimal linear combination of features. Coefficients successfully shrunk to zero by the penalty are those deemed irrelevant and are effectively excluded from the final diagnostic model.
+
+## 3. References
+
+1.  **The PYE estimation:**
+Salaroli, C. J., & Pardo, M. C. (2023). PYE: A Penalized Youden Index Estimator for selecting and combining biomarkers in high-dimensional data. *Chemometrics and Intelligent Laboratory Systems*, *236*, 104786. <https://doi.org/10.1016/j.chemolab.2023.104786>
+
+2.  **The covYI Estimation:**
+Salaroli, C. J., & Pardo, M. C. (2026). covYI: A Covariate-Adjusted Penalized Youden Index Estimator for Selecting and Combining Covariates in High-Dimensional Data. Submitted for publication, currently under review.
+
+```
+```$$
