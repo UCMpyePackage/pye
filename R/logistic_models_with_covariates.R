@@ -224,101 +224,101 @@ plr_estimation <- function (df,
   df_y_as_matrix <- as.matrix(df1[[y]])
 
   # Suppress warnings during model fitting
-  options(warn = -1)
+  suppressWarnings({
 
-  # Fitting logistic lasso
-  if (model_type == "logLasso") {
+    # Fitting logistic lasso
+    if (model_type == "logLasso") {
 
-    # For Lasso, alpha must be 1
-    alpha <- 1
+      # For Lasso, alpha must be 1
+      alpha <- 1
 
-    # Estimate the Lasso model
-    fit_lasso <- glmnet::glmnet(df_x_as_matrix, df_y_as_matrix, family = "binomial", alpha = alpha, lambda = lambda, intercept = TRUE)
+      # Estimate the Lasso model
+      fit_lasso <- glmnet::glmnet(df_x_as_matrix, df_y_as_matrix, family = "binomial", alpha = alpha, lambda = lambda, intercept = TRUE)
 
-    # Extract coefficients (excluding intercept)
-    betas_hat <- as.numeric(stats::coef (fit_lasso))[-1]
-    names(betas_hat) <- X
+      # Extract coefficients (excluding intercept)
+      betas_hat <- as.numeric(stats::coef (fit_lasso))[-1]
+      names(betas_hat) <- X
 
-    # Compute z_hat (predicted probabilities)
-    z_hat <- stats::predict(fit_lasso, newx = df_x_as_matrix, type = "response", s = lambda) #type = "response", "class", "coefficients", "nonzero")
-    colnames(z_hat) <- "z_hat"
-    df_hat <- cbind(df1, z_hat)
-    model <- fit_lasso
+      # Compute z_hat (predicted probabilities)
+      z_hat <- stats::predict(fit_lasso, newx = df_x_as_matrix, type = "response", s = lambda) #type = "response", "class", "coefficients", "nonzero")
+      colnames(z_hat) <- "z_hat"
+      df_hat <- cbind(df1, z_hat)
+      model <- fit_lasso
 
-  } else if (model_type == "logElasticNet") {
+    } else if (model_type == "logElasticNet") {
 
-    # Estimate the Elastic-Net model
-    fit_EN <- glmnet::glmnet(df_x_as_matrix, df_y_as_matrix, family = "binomial", alpha = alpha, lambda = lambda, intercept = TRUE)
+      # Estimate the Elastic-Net model
+      fit_EN <- glmnet::glmnet(df_x_as_matrix, df_y_as_matrix, family = "binomial", alpha = alpha, lambda = lambda, intercept = TRUE)
 
-    # Extract coefficients (excluding intercept)
-    betas_hat <- as.numeric(stats::coef (fit_EN))[-1]
-    names(betas_hat) <- X
+      # Extract coefficients (excluding intercept)
+      betas_hat <- as.numeric(stats::coef (fit_EN))[-1]
+      names(betas_hat) <- X
 
-    # Compute z_hat (predicted probabilities)
-    z_hat <- stats::predict(fit_EN, newx = df_x_as_matrix, type = "response", s = lambda) #type = "response", "class", "coefficients", "nonzero")
-    colnames(z_hat) <- "z_hat"
-    df_hat <- cbind(df1, z_hat)
-    model <- fit_EN
+      # Compute z_hat (predicted probabilities)
+      z_hat <- stats::predict(fit_EN, newx = df_x_as_matrix, type = "response", s = lambda) #type = "response", "class", "coefficients", "nonzero")
+      colnames(z_hat) <- "z_hat"
+      df_hat <- cbind(df1, z_hat)
+      model <- fit_EN
 
-  } else if (model_type %in% c("logSCAD", "logMCP")) {
+    } else if (model_type %in% c("logSCAD", "logMCP")) {
 
-    penalty_type <- gsub("log", "", model_type)
-    eps <- 1e-7 # Initial convergence tolerance
+      penalty_type <- gsub("log", "", model_type)
+      eps <- 1e-7 # Initial convergence tolerance
 
-    # Estimation using ncvreg_modified
-    tmp <- try({
-      fit_SCAD_or_MCP <- ncvreg_modified(X = df_x_as_matrix, #matrix
-                                  y = df_y_as_matrix, #vector
-                                  family = "binomial", #"gaussian", "binomial", "poisson"
-                                  penalty = penalty_type, #"MCP", "SCAD", "lasso"
-                                  #gamma=switch(penalty, SCAD=3.7, 3),
-                                  alpha = 1,
-                                  max.iter = 1000000,
-                                  lambda = lambda,
-                                  eps = eps,
-                                  #dfmax = p+1,
-                                  warn = FALSE)
-      }, silent = TRUE)
-    #if it produces an error it is because the algorithm do not converge
-    #the only solution is to decrease eps
-    while ((inherits(tmp, "try-error")) && (eps < 1)) {
-      eps <- eps * 5
+      # Estimation using ncvreg_modified
       tmp <- try({
         fit_SCAD_or_MCP <- ncvreg_modified(X = df_x_as_matrix, #matrix
-                                           y = df_y_as_matrix, #vector
-                                           family = "binomial", #"gaussian", "binomial", "poisson"
-                                           penalty = penalty_type, #"MCP", "SCAD", "lasso"
-                                           #gamma=switch(penalty, SCAD=3.7, 3),
-                                           alpha = 1,
-                                           max.iter = 100000,
-                                           lambda = lambda, eps = eps,
-                                           #dfmax = p+1,
-                                           warn = FALSE)
+                                    y = df_y_as_matrix, #vector
+                                    family = "binomial", #"gaussian", "binomial", "poisson"
+                                    penalty = penalty_type, #"MCP", "SCAD", "lasso"
+                                    #gamma=switch(penalty, SCAD=3.7, 3),
+                                    alpha = 1,
+                                    max.iter = 1000000,
+                                    lambda = lambda,
+                                    eps = eps,
+                                    #dfmax = p+1,
+                                    warn = FALSE)
         }, silent = TRUE)
+      #if it produces an error it is because the algorithm do not converge
+      #the only solution is to decrease eps
+      while ((inherits(tmp, "try-error")) && (eps < 1)) {
+        eps <- eps * 5
+        tmp <- try({
+          fit_SCAD_or_MCP <- ncvreg_modified(X = df_x_as_matrix, #matrix
+                                             y = df_y_as_matrix, #vector
+                                             family = "binomial", #"gaussian", "binomial", "poisson"
+                                             penalty = penalty_type, #"MCP", "SCAD", "lasso"
+                                             #gamma=switch(penalty, SCAD=3.7, 3),
+                                             alpha = 1,
+                                             max.iter = 100000,
+                                             lambda = lambda, eps = eps,
+                                             #dfmax = p+1,
+                                             warn = FALSE)
+          }, silent = TRUE)
+      }
+      if (inherits(tmp, "try-error") || eps > 1) {
+        stop(paste0("The algorithm for ", model_type, " did not converge."))
+      }
+
+      # Extract coefficients (excluding intercept)
+      betas_hat <- as.numeric(stats::coef (fit_SCAD_or_MCP))[-1]
+      names(betas_hat) <- X
+
+      # Compute z_hat (predicted probabilities)
+      # Linear predictor: X*beta + intercept
+      eta <-  Rmpfr::mpfr(sweep(df_x_as_matrix %*% fit_SCAD_or_MCP$beta[-1, drop = FALSE], 2, fit_SCAD_or_MCP$beta[1], "+"), precBits = 120)
+      # Predicted probability: exp(eta) / (1 + exp(eta))
+      z_hat <- as.matrix(as.numeric(exp(eta) / (1 + exp(eta))))
+      colnames(z_hat) <- "z_hat"
+      df_hat <- cbind(df1, z_hat)
+      model <- fit_SCAD_or_MCP
+      # For SCAD/MCP, we set alpha back to NA/NULL as it's not a primary parameter
+      alpha <- NA
+
+    } else {
+      stop("The parameter model_type is not valid!")
     }
-    if (inherits(tmp, "try-error") || eps > 1) {
-      stop(paste0("The algorithm for ", model_type, " did not converge."))
-    }
-
-    # Extract coefficients (excluding intercept)
-    betas_hat <- as.numeric(stats::coef (fit_SCAD_or_MCP))[-1]
-    names(betas_hat) <- X
-
-    # Compute z_hat (predicted probabilities)
-    # Linear predictor: X*beta + intercept
-    eta <-  Rmpfr::mpfr(sweep(df_x_as_matrix %*% fit_SCAD_or_MCP$beta[-1, drop = FALSE], 2, fit_SCAD_or_MCP$beta[1], "+"), precBits = 120)
-    # Predicted probability: exp(eta) / (1 + exp(eta))
-    z_hat <- as.matrix(as.numeric(exp(eta) / (1 + exp(eta))))
-    colnames(z_hat) <- "z_hat"
-    df_hat <- cbind(df1, z_hat)
-    model <- fit_SCAD_or_MCP
-    # For SCAD/MCP, we set alpha back to NA/NULL as it's not a primary parameter
-    alpha <- NA
-
- } else {stop("The parameter model_type is not valid!")}
-
-  # Re-activate standard warning messages
-  options(warn = 1)
+  })
 
   # Find optimal measures, some of them based on the Youden's Index
   opt <- OptimalCutpoints::optimal.cutpoints(data = df_hat, X = "z_hat", status = y, methods = "Youden", tag.healthy = 0)
@@ -602,9 +602,6 @@ plr_predict <- function (df,
   # Prepare data matrices
   df_x_as_matrix <- as.matrix(df1[, X, drop = FALSE])
 
-  #Suppress warnings during the predictions
-  #options(warn = -1)
-
   # --- Predict z_hat score ---
 
   #alpha change on the bases of the used model
@@ -668,9 +665,6 @@ plr_predict <- function (df,
     mcc <- 0
     corrclass <- 0
   }
-
-  #re-active warning messages
-  #options(warn = 1)
 
   if (trace %in% c(1, 2)) {
     #print the results only if c_function_of_covariates = FALSE

@@ -406,12 +406,10 @@ covYI_KS <- function(df,
       #proposed by Janes and Pepe (2009).
 
       #if we have all zeros, the function returns a warning message. We suppress it just for this function:
-      options(warn = -1)
-
-      aroc <- ROCnReg::AROC.sp(formula.h = z_hat ~ c_hat, group = "y", tag.h = 0, data = df1,
+      aroc <- suppressWarnings(
+			  ROCnReg::AROC.sp(formula.h = z_hat ~ c_hat, group = "y", tag.h = 0, data = df1,
                                p = seq(0, 1, l = 101), B = 500)
-
-      options(warn = 0)
+      )
 
       #NOt werking properly:
       #aroc <- ROCnReg::AROC.bnp(formula.h = z_hat ~ c_hat, group = "y", tag.h = 0, data = df1,

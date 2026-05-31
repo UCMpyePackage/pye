@@ -13,7 +13,7 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
-options(digits = 4)
+old_options <- options(digits = 4)
 ```
 
 ```{r setup}
@@ -150,5 +150,6 @@ Salaroli, C. J., & Pardo, M. C. (2023). PYE: A Penalized Youden Index Estimator 
 2.  **The covYI Estimation:**
 Salaroli, C. J., & Pardo, M. C. (2026). covYI: A Covariate-Adjusted Penalized Youden Index Estimator for Selecting and Combining Covariates in High-Dimensional Data. Submitted for publication, currently under review.
 
-```
-```$$
+```{r, include = FALSE}
+# Restore the user's original options at the end of the vignette
+options(old_options)
